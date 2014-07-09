@@ -1,0 +1,3 @@
+[submodule "vendor/kinetic-protocol"]
+	path = vendor/kinetic-protocol
+	url = git@github.com:Seagate/kinetic-protocol.git
