@@ -29,6 +29,9 @@ Gem::Specification.new do |s|
   s.test_files = [
     # NEED SOME!!!
   ]
+  s.add_runtime_dependency 'rake', '>= 0.9.2.2'
+  s.add_runtime_dependency 'beefcake'
+  s.add_runtime_dependency 'rspec'
 
   if s.respond_to? :specification_version then
     current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
