@@ -8,6 +8,10 @@ class KineticRuby
     @message_in = nil
   end
 
+  def encode_test_message
+    encode
+  end
+
   def test_kinetic_proto
     msg = encode
     decode msg
@@ -22,17 +26,12 @@ private
     puts "Seagate::Kinetic::Message - Encoding"
     puts  "---------------------------------------"
 
-    puts "  methods:"
-    pb.methods.sort.each{|m| puts "    #{m}"}
-    puts
-    puts
-
     puts "  fields:"
     pb.fields.sort.each{|f| puts "    #{f}"}
     puts
 
     puts "  hmac:"
-    pb.hmac = "ABC"
+    pb.hmac = "0123456789ABCDEF0123"
     puts "    #{pb.hmac.inspect}"
     puts
 
