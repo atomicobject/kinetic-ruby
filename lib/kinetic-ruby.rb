@@ -60,9 +60,10 @@ private
     encoded = pb.encode
     puts
     puts "    Inspection: #{encoded.inspect}"
-    puts
-    puts "    Content:"
-    encoded.to_yaml.each_line{|l| puts "    #{l}"}
+    # puts
+    # puts "    Content:"
+    # encoded.to_yaml.each_line{|l| puts "    #{l}"}
+    puts "    Length: #{encoded.length} bytes"
     puts
 
     return encoded
