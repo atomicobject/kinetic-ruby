@@ -3,7 +3,7 @@ HERE = File.expand_path(File.dirname(__FILE__))
 $LOAD_PATH.unshift File.join(HERE)
 $LOAD_PATH.unshift File.join(HERE, 'lib')
 
-require 'version'
+require 'kinetic-ruby'
 require 'date'
 
 Gem::Specification.new do |s|

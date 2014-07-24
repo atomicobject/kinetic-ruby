@@ -3,6 +3,8 @@ require 'yaml'
 
 class KineticRuby
 
+  VERSION = "0.2.0"
+
   LOG_LEVELS = [
     LOG_LEVEL_NONE = 0,
     LOG_LEVEL_ERROR = 1,

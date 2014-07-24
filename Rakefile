@@ -1,5 +1,8 @@
 require 'rake'
+require 'rake/clean'
 require_relative 'lib/kinetic-ruby'
+
+CLEAN.include ['*.gem', '*.log']
 
 desc "Run example"
 task :example do
@@ -26,9 +29,24 @@ task :default => [:example]
 
 desc "Build kinetic-ruby gem"
 task :build do
-  sh "gem build bundler.gemspec"
+  banner "Building kinetic-ruby gem v#{KineticRuby::VERSION}"
+  sh "gem build kinetic-ruby.gemspec"
+  puts
 end
 
 task :release => :build do
-  sh "gem push bundler-#{KineticRuby::VERSION}"
+  banner "Publishing kinetic-ruby gem v#{KineticRuby::VERSION} to RubyGems"
+  sh "gem push kinetic-ruby-#{KineticRuby::VERSION}"
+  puts
+end
+
+task :ci =>[:clobber, :example, :example_no_log, :build]
+
+#############################################
+# Helper methods and goodies
+
+def banner(msg)
+  puts
+  puts msg
+  puts "-"*msg.length
 end
