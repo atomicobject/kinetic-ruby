@@ -1,9 +1,17 @@
 require_relative "protobuf/kinetic.pb"
 require 'yaml'
+require 'fileutils'
 
 class KineticRuby
 
-  VERSION = "0.2.0"
+  VERSION = "0.2.1"
+
+  kp_tag = ''
+  FileUtils.cd "./vendor/kinetic-protocol" do
+    kp_tag = 'v' + `git describe --tags`.strip
+    kp_tag = "<Unknown Kinetic Protocol version!>" if kp_tag !~ /^v\d+\.\d+\.\d+/
+  end
+  KINETIC_PROTOCOL_VERSION = kp_tag
 
   LOG_LEVELS = [
     LOG_LEVEL_NONE = 0,

@@ -29,13 +29,19 @@ task :default => [:example]
 
 desc "Build kinetic-ruby gem"
 task :build do
-  banner "Building kinetic-ruby gem v#{KineticRuby::VERSION}"
+  banner "Building kinetic-ruby gem v#{KineticRuby::VERSION} using Kinetic Protocol #{KineticRuby::KINETIC_PROTOCOL_VERSION}"
   sh "gem build kinetic-ruby.gemspec"
   puts
 end
 
 task :release => :build do
   banner "Publishing kinetic-ruby gem v#{KineticRuby::VERSION} to RubyGems"
+  proto_ver = KineticRuby::KINETIC_PROTOCOL_VERSION
+  if proto_ver !~ /v\d+\.\d+\.\d+/
+    raise "Can only publish gem with a release tag of Kinetic Protocol!\n" +
+      "  reported Kinetic Protocol version: "
+  end
+  puts "Releasing gem built w/ Kinetic Protocol #{proto_ver}"
   sh "gem push kinetic-ruby-#{KineticRuby::VERSION}.gem"
   puts
 end

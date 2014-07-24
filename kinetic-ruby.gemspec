@@ -19,13 +19,13 @@ Gem::Specification.new do |s|
     "README.md",
     "Rakefile",
     "LICENSE",
-  ] + Dir["./lib/**"] + Dir["./tasks/**"]
+  ] + Dir["./lib/**/*"] + Dir["./vendor/kinetic-protocol/*"]
   s.has_rdoc = true
   s.homepage = %q{http://github.com/atomicobject/kinetic-ruby}
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib", "tasks"]
   s.rubygems_version = %q{1.3.1}
-  s.summary = %q{Seagate Kinetic Protocol for Ruby}
+  s.summary = "Seagate Kinetic Protocol library for Ruby using Kinetic Protocol #{KineticRuby::KINETIC_PROTOCOL_VERSION}"
   s.test_files = [
     # NEED SOME!!!
   ]
