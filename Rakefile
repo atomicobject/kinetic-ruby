@@ -36,7 +36,7 @@ end
 
 task :release => :build do
   banner "Publishing kinetic-ruby gem v#{KineticRuby::VERSION} to RubyGems"
-  sh "gem push kinetic-ruby-#{KineticRuby::VERSION}"
+  sh "gem push kinetic-ruby-#{KineticRuby::VERSION}.gem"
   puts
 end
 
