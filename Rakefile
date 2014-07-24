@@ -23,3 +23,12 @@ task :example_verbose_log do
 end
 
 task :default => [:example]
+
+desc "Build kinetic-ruby gem"
+task :build do
+  sh "gem build bundler.gemspec"
+end
+
+task :release => :build do
+  sh "gem push bundler-#{KineticRuby::VERSION}"
+end
