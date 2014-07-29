@@ -84,8 +84,9 @@ module KineticRuby
                 request = ''
 
               elsif request.length > 20
-                report_banner "Received unknown data:"
-                report_buffer(request)
+                report_banner "Received unknown data: length=#{request.length}"
+                # report "  requst.inspect"
+                # report_buffer(request)
               end
 
             end
