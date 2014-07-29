@@ -4,7 +4,7 @@ require_relative 'kinetic_server'
 
 module KineticRuby
 
-  VERSION = '0.3.1'
+  VERSION = '0.3.4'
   DEFAULT_KINETIC_PORT = 8123
   TEST_KINETIC_PORT = 8999
 

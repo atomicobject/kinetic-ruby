@@ -36,7 +36,7 @@ task :build do
   puts
 end
 
-task :release => :build do
+task :release => :ci do
   banner "Publishing kinetic-ruby gem v#{KineticRuby::VERSION} to RubyGems"
   proto_ver = KineticRuby::KINETIC_PROTOCOL_VERSION
   if proto_ver !~ /v\d+\.\d+\.\d+/

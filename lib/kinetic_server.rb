@@ -31,10 +31,12 @@ module KineticRuby
     def report_buffer(buf)
       bytes = buf.bytes
       row_len = 16
-      report "Raw Data:"
+      report "Raw Data (length=#{buf.count}):"
       while !bytes.empty?
         row_len = bytes.count >= row_len ? row_len : bytes.count
+        report "  row_len: #{row_len}"
         row = bytes.slice!(row_len)
+        report "  row: #{row.inspect}"
         msg = "  "
         row.each do |b|
           msg += sprintf("0x%02X", b)
@@ -66,19 +68,20 @@ module KineticRuby
             while request += client.getc # Read characters from socket
 
               request_match = request.match(/^read\((\d+)\)/)
+
               if request_match
                 len = request_match[1].to_i
                 response = "G"*len
                 report "Kinetic Test Server: Responding to 'read(#{len})' w/ '#{response}'"
                 client.write response
-                request = ""
+                request = ''
 
               elsif request =~ /^readProto()/
                 kruby = KineticRuby::Server.new
                 response = kruby.encode_test_message
                 report "Kinetic Test Server: Responding to 'read(#{len})' w/ dummy protobuf (#{response.length} bytes)"
                 client.write response
-                request = ""
+                request = ''
 
               elsif request.length > 20
                 report_banner "Received unknown data:"
