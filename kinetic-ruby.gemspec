@@ -2,6 +2,7 @@
 HERE = File.expand_path(File.dirname(__FILE__))
 $LOAD_PATH.unshift File.join(HERE)
 $LOAD_PATH.unshift File.join(HERE, 'lib')
+$LOAD_PATH.unshift File.join(HERE, 'tasks')
 
 require 'kinetic-ruby'
 require 'date'
@@ -19,7 +20,7 @@ Gem::Specification.new do |s|
     "README.md",
     "Rakefile",
     "LICENSE",
-  ] + Dir["./lib/**/*"] + Dir["./vendor/kinetic-protocol/*"]
+  ] + Dir["./lib/**/*"] + Dir["./tasks/**/*"] + Dir["./vendor/kinetic-protocol/*"]
   s.has_rdoc = true
   s.homepage = %q{http://github.com/atomicobject/kinetic-ruby}
   s.rdoc_options = ["--charset=UTF-8"]
