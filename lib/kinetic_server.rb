@@ -83,11 +83,11 @@ module KineticRuby
                 client.write response
                 request = ''
 
-              elsif request.length > 20
-                report_banner "Received unknown data: length=#{request.length}"
-                # report "  requst.inspect"
-                # report_buffer(request)
-              end
+              # elsif request.length > 20
+              #   report_banner "Received unknown data: length=#{request.length}"
+              #   report "  requst.inspect"
+              #   report_buffer(request)
+              # end
 
             end
             report "Kinetic Test Server: Client #{client.inspect} disconnected!"
