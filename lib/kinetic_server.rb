@@ -87,7 +87,8 @@ module KineticRuby
               #   report_banner "Received unknown data: length=#{request.length}"
               #   report "  requst.inspect"
               #   report_buffer(request)
-              # end
+
+              end
 
             end
             report "Kinetic Test Server: Client #{client.inspect} disconnected!"
