@@ -77,8 +77,8 @@ module KineticRuby
                 request = ''
 
               elsif request =~ /^readProto()/
-                kruby = KineticRuby::Server.new
-                response = kruby.encode_test_message
+                proto = KineticRuby::Proto.new
+                response = proto.encode_test_message
                 report "Kinetic Test Server: Responding to 'read(#{len})' w/ dummy protobuf (#{response.length} bytes)"
                 client.write response
                 request = ''
