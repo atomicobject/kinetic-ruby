@@ -17,13 +17,13 @@ end
 
 desc "Run example w/o logging"
 task :example_no_log do
-  kr = KineticRuby::Proto.new(KineticRuby::Proto::LOG_LEVEL_NONE)
+  kr = KineticRuby::Proto.new(KineticRuby::Logger::LOG_LEVEL_NONE)
   kr.test_kinetic_proto
 end
 
 desc "Run example w/ verbose logging"
 task :example_verbose_log do
-  kr = KineticRuby::Proto.new(KineticRuby::Proto::LOG_LEVEL_VERBOSE)
+  kr = KineticRuby::Proto.new(KineticRuby::Logger::LOG_LEVEL_VERBOSE)
   kr.test_kinetic_proto
 end
 
@@ -38,7 +38,7 @@ end
 
 task :release => :build do
   banner "Publishing kinetic-ruby gem v#{KineticRuby::VERSION} to RubyGems"
-  proto_ver = KineticRuby::Proto::KINETIC_PROTOCOL_VERSION
+  proto_ver = KineticRuby::KINETIC_PROTOCOL_VERSION
   if proto_ver !~ /v\d+\.\d+\.\d+/
     raise "Can only publish gem with a release tag of Kinetic Protocol!\n" +
       "  reported Kinetic Protocol version: "

@@ -7,13 +7,6 @@ module KineticRuby
 
   class Proto
 
-    kp_tag = ''
-    FileUtils.cd "./vendor/kinetic-protocol" do
-      kp_tag = 'v' + `git describe --tags`.strip
-      kp_tag = "<Unknown Kinetic Protocol version!>" if kp_tag !~ /^v\d+\.\d+\.\d+/
-    end
-    KINETIC_PROTOCOL_VERSION = kp_tag
-
     def initialize(log_level = KineticRuby::Logger::LOG_LEVEL_INFO)
       require_relative "protobuf/kinetic.pb"
       @message_out = nil
