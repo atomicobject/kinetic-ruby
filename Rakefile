@@ -1,27 +1,29 @@
+HERE = File.expand_path(File.dirname(__FILE__))
+$LOAD_PATH.unshift File.join(HERE, 'lib')
+
 require 'rake'
 require 'rake/clean'
-require_relative 'lib/kinetic-ruby'
+require 'kinetic-ruby'
+
+load 'tasks/kinetic-ruby.rake'
 
 CLEAN.include ['*.gem', '*.log']
 
 desc "Run example"
 task :example do
-  kr = KineticRuby.new
-  kr.log_level = KineticRuby::LOG_LEVEL_INFO
+  kr = KineticRuby::Proto.new
   kr.test_kinetic_proto
 end
 
 desc "Run example w/o logging"
 task :example_no_log do
-  kr = KineticRuby.new
-  kr.log_level = KineticRuby::LOG_LEVEL_NONE
+  kr = KineticRuby::Proto.new(KineticRuby::Proto::LOG_LEVEL_NONE)
   kr.test_kinetic_proto
 end
 
 desc "Run example w/ verbose logging"
 task :example_verbose_log do
-  kr = KineticRuby.new
-  kr.log_level = KineticRuby::LOG_LEVEL_VERBOSE
+  kr = KineticRuby::Proto.new(KineticRuby::Proto::LOG_LEVEL_VERBOSE)
   kr.test_kinetic_proto
 end
 
@@ -36,7 +38,7 @@ end
 
 task :release => :build do
   banner "Publishing kinetic-ruby gem v#{KineticRuby::VERSION} to RubyGems"
-  proto_ver = KineticRuby::KINETIC_PROTOCOL_VERSION
+  proto_ver = KineticRuby::Proto::KINETIC_PROTOCOL_VERSION
   if proto_ver !~ /v\d+\.\d+\.\d+/
     raise "Can only publish gem with a release tag of Kinetic Protocol!\n" +
       "  reported Kinetic Protocol version: "
