@@ -1,8 +1,6 @@
 # -*- encoding: utf-8 -*-
 HERE = File.expand_path(File.dirname(__FILE__))
 $LOAD_PATH.unshift File.join(HERE)
-$LOAD_PATH.unshift File.join(HERE, 'lib')
-$LOAD_PATH.unshift File.join(HERE, 'tasks')
 
 require 'kinetic-ruby'
 require 'date'
@@ -26,7 +24,7 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib", "tasks"]
   s.rubygems_version = %q{1.3.1}
-  s.summary = "Seagate Kinetic Protocol library for Ruby using Kinetic Protocol #{KineticRuby::KINETIC_PROTOCOL_VERSION}"
+  s.summary = "Seagate Kinetic Protocol library for Ruby using Kinetic Protocol #{KineticRuby::Proto::PROTOCOL_VERSION}"
   s.test_files = [
     # NEED SOME!!!
   ]
