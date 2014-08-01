@@ -1,6 +1,6 @@
 require 'rake'
 require 'rake/clean'
-$LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__))
+$LOAD_PATH.unshift File.expand_path('lib')
 require 'kinetic-ruby'
 
 KineticRuby::Rake::load_tasks()
@@ -48,11 +48,36 @@ task :example_verbose_log do
   kr.test_kinetic_proto
 end
 
+task :update_version_info do
+  require 'erb'
+  proto_ver = ''
+  FileUtils.cd 'vendor/kinetic-protocol' do
+    proto_ver = 'v' + `git describe --tags 2> /dev/null`.strip
+    proto_ver = 'v<Unknown!>' if proto_ver !~ /^v\d+\.\d+\.\d+/
+  end
+  template = File.read('lib/version.rb.erb')
+  content = ERB.new(template).result(binding)
+  File.open('lib/version.rb', "w+"){|f| f.write(content) }
+  new_ver = content.match(/  VERSION = '(.+)'.+ PROTOCOL_VERSION = '(.+)'/m)
+  raise "Failed to parse updated version info!" unless new_ver
+  if ((new_ver[1] != KineticRuby::VERSION) ||
+      (new_ver[2] != KineticRuby::PROTOCOL_VERSION))
+    report "Kinetic Ruby version info has changed! You must re-run Rake to resync!\nExiting..."
+    exit 1
+  end
+end
+
 desc "Build kinetic-ruby gem"
-task :build do
-  report("Building kinetic-ruby gem v#{KineticRuby::VERSION} w/ Kinetic Protocol #{KineticRuby::Proto::PROTOCOL_VERSION}", true)
+task :build => :update_version_info do
+  report("Building kinetic-ruby gem v#{KineticRuby::VERSION} w/ Kinetic Protocol #{KineticRuby::PROTOCOL_VERSION}", true)
   sh "gem build kinetic-ruby.gemspec"
   report
+end
+
+# desc "Build and install kinetic-ruby gem"
+task :install => :build do
+  report "Installing KineticRuby gem v#{KineticRuby::VERSION}"
+  sh "sudo gem install kinetic-ruby-#{KineticRuby::VERSION}.gem"
 end
 
 task :release => :ci do

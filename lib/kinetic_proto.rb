@@ -1,23 +1,13 @@
 require 'yaml'
-require 'fileutils'
-require_relative 'kinetic_logger'
-require_relative 'kinetic_server'
 
 module KineticRuby
 
   class Proto
 
-    kp_tag = ''
-    FileUtils.cd "./vendor/kinetic-protocol" do
-      kp_tag = 'v' + `git describe --tags`.strip
-      kp_tag = "<Unknown Kinetic Protocol version!>" if kp_tag !~ /^v\d+\.\d+\.\d+/
-    end
-    PROTOCOL_VERSION = kp_tag
     VERSION_PREFIX = 'F'
 
     def initialize(logger)
       @logger = logger
-      require_relative 'protobuf/kinetic.pb'
       @message_out = nil
       @message_in = nil
     end
