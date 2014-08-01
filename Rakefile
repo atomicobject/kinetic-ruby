@@ -76,8 +76,9 @@ end
 
 # desc "Build and install kinetic-ruby gem"
 task :install => :build do
-  report "Installing KineticRuby gem v#{KineticRuby::VERSION}"
-  sh "sudo gem install kinetic-ruby-#{KineticRuby::VERSION}.gem"
+  report("Installing KineticRuby gem v#{KineticRuby::VERSION}", true)
+  sh "sudo gem uninstall --all kinetic-ruby"
+  sh "sudo gem install --no-doc kinetic-ruby-#{KineticRuby::VERSION}.gem"
 end
 
 task :release => :ci do

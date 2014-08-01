@@ -19,7 +19,6 @@ module KineticRuby
       @proto = Proto.new(@logger)
       @server = nil
       @worker = nil
-      @listeners = []
       @clients = []
       @logger.log "Kinetic Ruby test device server started!"
     end
@@ -49,8 +48,7 @@ module KineticRuby
     def start
       return unless @server.nil?
 
-      @server = TCPServer.new @port
-      @listeners = []
+      @server = TCPServer.new(@host, @port)
 
       # Setup handler for signaled shutdown (via ctrl+c)
       trap("INT") do
@@ -62,79 +60,88 @@ module KineticRuby
       @worker = Thread.new do
         @logger.log "Kinetic Test Server: Listening for Kinetic clients..."
         loop do
+          client = nil
+          begin
+            client, client_info = @server.accept
+          rescue Exception => e
+            @logger.log "Kinetic Test Server: EXCEPTION during accept!\n" +
+              "  #{e.inspect}\n" +
+              "  #{e.message}\n  #{e.backtrace.join("  \n")}"
+            next if client.nil?
+          end
 
-          @listeners << Thread.start(@server.accept) do |client|
-            
-            @logger.log "Kinetic Test Server: Connected to #{client.inspect}"
-            @abort = false
-            @clients << client
-            request = ''
-            data = nil
-            pdu = nil
+          next if client.nil?
 
-            while !@abort
+          @logger.log "Kinetic Test Server: Connected to #{client.inspect}"
+          request = ''
+          data = nil
+          pdu = nil
+          disconnect = false
 
-              begin
-                data = client.recvfrom(1)
-              rescue IO::WaitReadable
-                IO.select([client])
-                retry
-              # rescue Errno::ECONNRESET =>
-              rescue Exception => e
-                @logger.log "Kinetic Test Server: EXCEPTION!\n  #{e.message}\n  #{e.backtrace.inspect}"
-                @abort = true
-                next
+          while !disconnect
+            begin
+              data = client.recv(1024)
+            rescue IO::WaitReadable
+              @logger.log("IO:WaitReadable");
+              IO.select([client])
+              retry
+            rescue Exception => e
+              @logger.logv "Kinetic Test Server: EXCEPTION during receive!\n" +
+                "  #{e.inspect}\n" +
+                "  #{e.message}\n  #{e.backtrace.join("  \n")}"
+              disconnect = true
+              next
+            end
+
+            if (data.nil? || data.empty?)
+              @logger.log "Kinetic Test Server: Client #{client.inspect} disconnected!"
+              disconnect = true
+              next
+            end
+
+            # Incrementally parse PDU until complete
+            if request[0] == KineticRuby::Proto::VERSION_PREFIX && request.length >= 9
+              pdu ||= PDU.new(@Logger)
+              pdu.update(request)
+            end
+
+            # Otherwise, handle custom test requests
+            if pdu.nil?
+              request_match = request.match(/^read\((\d+)\)/)
+              if request_match
+                len = request_match[1].to_i
+                response = 'G'*len
+                @logger.log "Kinetic Test Server: Responding to 'read(#{len})' w/ '#{response}'"
+                client.write response
+                request = ''
+              elsif request =~ /^readProto()/
+                response = @proto.test_encode
+                @logger.log "Kinetic Test Server: Responding to 'read(#{len})' w/ dummy @protobuf (#{response.length} bytes)"
+                client.write response
+                request = ''
               end
-
-              if (data.nil? || data.empty?)
-                @logger.log "Kinetic Test Server: Client #{client.inspect} disconnected!"
-                @abort = true
-                next
-              end
-
-              # Incrementally parse PDU until complete
-              if request[0] == KineticProto::VERSION_PREFIX && request.length >= 9
-                pdu ||= PDU.new(@Logger)
-                pdu.update(request)
-              end
-
-              # Otherwise, handle custom test requests
-              if pdu.nil?
-                request_match = request.match(/^read\((\d+)\)/)
-                if request_match
-                  len = request_match[1].to_i
-                  response = 'G'*len
-                  @logger.log "Kinetic Test Server: Responding to 'read(#{len})' w/ '#{response}'"
-                  client.write response
-                  request = ''
-                elsif request =~ /^readProto()/
-                  response = @proto.test_encode
-                  @logger.log "Kinetic Test Server: Responding to 'read(#{len})' w/ dummy @protobuf (#{response.length} bytes)"
-                  client.write response
-                  request = ''
-                end
-              end
-
             end
 
             @logger.log "Kinetic Test Server: Client #{client.inspect} disconnected!"
+            client.close
+            @logger.log "Kinetic Test Server: Client connection shutdown successfully"
           end
         end
       end
-
     end
 
     def shutdown
       return if @server.nil?
       @logger.log "Kinetic Test Server: shutting down..."
-      @listeners.each do |client|
-        client.join(0.3) if client.alive?
+      if @worker
+        @worker.exit
+        @worker.join(2)
+        @worker = nil
       end
-      @listeners = []
-      @worker.exit
-      @worker = nil
-      @server.close
-      @server = nil
+      if @server
+        @server.close
+        @server = nil
+      end
       @logger.log "Kinetic Test Server: shutdown complete"
     end
 
