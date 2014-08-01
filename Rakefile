@@ -83,7 +83,7 @@ end
 
 task :release => :ci do
   report("Publishing kinetic-ruby gem v#{KineticRuby::VERSION} to RubyGems", true)
-  proto_ver = KineticRuby::KINETIC_PROTOCOL_VERSION
+  proto_ver = KineticRuby::PROTOCOL_VERSION
   if proto_ver !~ /v\d+\.\d+\.\d+/
     raise "Can only publish gem with a release tag of Kinetic Protocol!\n" +
       "  reported Kinetic Protocol version: "
