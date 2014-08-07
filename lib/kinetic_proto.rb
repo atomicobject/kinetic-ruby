@@ -23,7 +23,7 @@ module KineticRuby
         logger.prefix = logger.prefix + add_prefix
         logger.log 'message:'
         logger.prefix = logger.prefix + '  '
-        self.to_yaml(msg).each_line{|line| logger.log(line) }
+        self.to_yaml(msg).each_line{|line| logger.log(line.rstrip) }
         logger.prefix = orig_prefix
         logger.log
       end
@@ -75,14 +75,14 @@ module KineticRuby
       @logger.log_verbose "    #{pb.hmac}"
 
       @logger.log '  command:'
-      pb.command.to_yaml.each_line{|l| @logger.log("    #{l}")}
+      pb.command.to_yaml.each_line{|l| @logger.log("    #{l.rstrip}")}
       @logger.log '  encoded:'
       @logger.log '    Length: ' + encoded.length.to_s + ' bytes'
 
       @logger.log_verbose "    Raw:"
       @logger.log_verbose "      #{encoded.inspect}"
       @logger.log_verbose "    Content:"
-      encoded.to_yaml.each_line{|line| @logger.log_verbose "      #{line}"}
+      encoded.to_yaml.each_line{|line| @logger.log_verbose "      #{line.rstrip}"}
       
       @logger.log
 

@@ -1,3 +1,5 @@
+require 'date'
+
 module KineticRuby
 
   class Logger
@@ -9,10 +11,11 @@ module KineticRuby
       LOG_LEVEL_VERBOSE = 3,
     ]
 
-    def initialize(log_level=LOG_LEVEL_INFO, stream=$stdout)
+    def initialize(log_level=LOG_LEVEL_INFO, stream=$stdout, enable_timestamp=true)
       set_level log_level
       @stream = stream
       @prefix = ''
+      @timestamp_enabled = enable_timestamp
     end
 
     def level=(log_level)
@@ -21,6 +24,14 @@ module KineticRuby
 
     def level
       @level.dup
+    end
+
+    def enable_timestamp(enable=true)
+      @timestamp_enabled = enable
+    end
+
+    def timestamp_enabled
+      @timestamp_enabled
     end
 
     def prefix=(msg)
@@ -66,9 +77,10 @@ module KineticRuby
     end
 
     def log_message(msg, banner)
-      msg = @prefix + msg if (@prefix && !@prefix.empty?)
-      msg += "\n" + @prefix + ('-'*40) if (banner && msg && !msg.empty?)
-      @stream.puts msg
+      now = '[' + DateTime.now.to_s + '] '
+      timestamp = @timestamp_enabled ? now : '[N/A]'
+      @stream.puts(timestamp + @prefix + msg) if (msg)
+      @stream.puts(timestamp + @prefix + ('-'*40)) if (banner && msg)
       @stream.flush
     end
 
