@@ -10,7 +10,11 @@ CLEAN.include ['*.gem', '*.log']
 namespace :test do
   desc "Test Kinetic Ruby server"
   task :server => 'kinetic:server:start' do
-    report "Started Kinetic Ruby server!"
+
+    report("Validating server can accept a client connection", true)
+
+    report "Kinetic Ruby server launched!"
+
     client = Thread.new do
       addr = $kinetic_server.host + ':' + $kinetic_server.port.to_s
       report "Connecting test client to #{addr}\n"
@@ -19,9 +23,16 @@ namespace :test do
       report "Connected to server!"
       client.close
     end
+
+    report "Terminating client connection..."
     client.join 5.0
+
+    report "Initiating server shutdown..."
     $kinetic_server.shutdown unless $kinetic_server.nil?
     $kinetic_server = nil
+
+    report "Shutdown complete!"
+
     report "Kinetic Ruby server test successful!"
   end
 end

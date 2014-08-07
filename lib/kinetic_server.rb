@@ -190,7 +190,7 @@ module KineticRuby
           request = ''
           pdu = nil
           connected = true
-          raw_proto = nil
+          raw_proto = []
 
           # Process requests while client available
           while connected && (data = client.receive)
@@ -213,39 +213,42 @@ module KineticRuby
               else
                 @logger.log "Waiting on remainder of PDU..."
               end
-            end
-
-            # Handle raw protobuf.. for tests
-            if raw_proto || request.match(/^\n/)
-                @logger.log "Appears to be a standalone protobuf incoming..."
-                pdu = nil
-                raw_proto ||= []
-                raw_proto += request.bytes
-                @logger.log "  protobuf: (#{raw_proto.length} bytes)"
 
             # Otherwise, handle custom test requests
             elsif pdu.nil?
               @logger.logv "Checking for custom request: '#{request}'"
-              request_match = request.match(/^read\((\d+)\)/)
-              if request_match
+              
+              # Handle raw protobuf.. for tests
+              if !raw_proto.empty? || request.match(/^\n/)
+                @logger.log "Appears to be a standalone protobuf incoming..."
+                raw_proto ||= []
+                raw_proto += request.bytes
+                @logger.log "  protobuf: (#{raw_proto.length} bytes)"
+                request = ''
+              
+              # Handle request for read(num_bytes), and respond with num_bytes of dummy data
+              elsif request_match = request.match(/^read\((\d+)\)/)
                 len = request_match[1].to_i
                 response = 'G'*len
                 @logger.log "Responding to 'read(#{len})' w/ '#{response}'"
                 client.send response
                 request = ''
-                pdu = nil
+              
+              # Handle request for readProto(), and respond with canned Kinetic protobuf
               elsif request =~ /^readProto()/
                 response = Proto.new(@logger).test_encode
                 @logger.log "Responding to 'read(#{len})' w/ dummy protobuf (#{response.length} bytes)"
                 client.send response
                 request = ''
-                pdu = nil
+              
+              # Report not enough data yet to make a call...
               elsif request.match(/^read/) && data.length < 7
                 @logger.log "no command match for request: '#{request}' (...yet)";
+
+              # Otherwise, report unknown request received!
               else
                 @logger.log "Unknown request! Aborting..."
                 request = ''
-                pdu = nil
                 connected = false
               end
             end
