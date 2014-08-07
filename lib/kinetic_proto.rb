@@ -12,19 +12,43 @@ module KineticRuby
       @message_in = nil
     end
 
-    def decode(buf)
-      @message_in = Seagate::Kinetic::Message.decode(buf)
-      @logger.log
-      @logger.log("\n#{@message_in.class} - Decoding", true)
-      @logger.log '  command:'
-      @message_in.command.to_yaml.each_line{|line| @logger.log '    ' + line}
-      @logger.log
+    def self.decode(buf, indent=0, logger=nil)
+      msg = Seagate::Kinetic::Message.decode(buf)
+
+      # Log the decoded protobuf
+      if logger
+        orig_prefix = logger.prefix
+        add_prefix = (indent.class == Fixnum) ? (' '*indent) : indent
+        add_prefix = ' ' * indent
+        logger.prefix = logger.prefix + add_prefix
+        logger.log 'message:'
+        logger.prefix = logger.prefix + '  '
+        self.to_yaml(msg).each_line{|line| logger.log(line) }
+        logger.prefix = orig_prefix
+        logger.log
+      end
+
+      return msg
+    end
+
+    def decode(buf, indent=0)
+      @message_in = Proto.decode(buf, indent, @logger)
+    end
+
+    def self.to_yaml(msg)
+      yaml = "message:\n"
+      msg.to_yaml.each_line{|line| yaml += "  #{line}"}
+      return yaml
+    end
+
+    def to_yaml(msg)
+      self.to_yaml(msg)
     end
 
     def test_encode
       pb = Seagate::Kinetic::Message.new
-
-      @logger.log("\n#{pb.class} - Encoding", true)
+      @logger.log
+      @logger.log("#{pb.class} - Encoding", true)
       pb.hmac = '0123456789ABCDEF0123'
       pb.command = Seagate::Kinetic::Message::Command.new(
         header: Seagate::Kinetic::Message::Header.new(
@@ -47,14 +71,16 @@ module KineticRuby
 
       @logger.log_verbose '  fields:'
       pb.fields.sort.each{|f| @logger.log_verbose("    #{f}")}
-      @logger.log_verbose "  hmac:\n    #{pb.hmac}"
+      @logger.log_verbose "  hmac:"
+      @logger.log_verbose "    #{pb.hmac}"
 
       @logger.log '  command:'
       pb.command.to_yaml.each_line{|l| @logger.log("    #{l}")}
       @logger.log '  encoded:'
       @logger.log '    Length: ' + encoded.length.to_s + ' bytes'
 
-      @logger.log_verbose "    Raw:\n      #{encoded.inspect}"
+      @logger.log_verbose "    Raw:"
+      @logger.log_verbose "      #{encoded.inspect}"
       @logger.log_verbose "    Content:"
       encoded.to_yaml.each_line{|line| @logger.log_verbose "      #{line}"}
       
@@ -65,10 +91,14 @@ module KineticRuby
 
     def test_kinetic_proto
       msg = test_encode
-      decode msg
+
+      @logger.log
+      @logger.log("Decoded Message", true)
+      decode(msg, 2)
 
       if @message_in != @message_out
-        @logger.log_err "Inbound/outbound messages do not match!\n\n"
+        @logger.log_err "Inbound/outbound messages do not match!"
+        @logger.log_err
         raise "\nKinetic Protocol message roundtrip FAILED!\n\n"
       end
 

@@ -11,18 +11,17 @@ namespace :test do
   desc "Test Kinetic Ruby server"
   task :server => 'kinetic:server:start' do
     report "Started Kinetic Ruby server!"
-    sleep 2.0
     client = Thread.new do
-      report "Connecting test client to #{$kinetic_server.host}:#{$kinetic_server.port}..."
-      sh "telnet #{$kinetic_server.host} #{$kinetic_server.port}"
+      addr = $kinetic_server.host + ':' + $kinetic_server.port.to_s
+      report "Connecting test client to #{addr}\n"
+      client = TCPSocket.new('localhost', KineticRuby::DEFAULT_KINETIC_PORT)
+      raise "Failed connecting to server!" unless client
+      report "Connected to server!"
+      client.close
     end
-    sleep 1.0
-    raise "Failed connecting a client to Kinetic Ruby server!" unless $kinetic_server.connected
-    client.exit
-    client.join(2.0)
+    client.join 5.0
     $kinetic_server.shutdown unless $kinetic_server.nil?
     $kinetic_server = nil
-    sleep 2.0
     report "Kinetic Ruby server test successful!"
   end
 end
@@ -75,7 +74,7 @@ task :build => :update_version_info do
 end
 
 # desc "Build and install kinetic-ruby gem"
-task :install => :build do
+task :install => :ci do
   report("Installing KineticRuby gem v#{KineticRuby::VERSION}", true)
   sh "sudo gem uninstall --all kinetic-ruby"
   sh "sudo gem install --no-doc kinetic-ruby-#{KineticRuby::VERSION}.gem"
@@ -93,7 +92,7 @@ task :release => :ci do
   report
 end
 
-task :default => [:example, 'test:server']
+task :default => [:ci]
 
 task :ci =>[:clobber, :example, :example_no_log, 'test:server', :build] do
   report("Kinetic Ruby Test Results", true)
@@ -105,6 +104,7 @@ end
 
 def report(msg='', banner=false)
   $stderr.flush
+  $stdout.flush
   if banner
     len = msg.length
     msg = "\n#{msg}\n#{'-'*len}" 

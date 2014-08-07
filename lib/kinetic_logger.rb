@@ -12,6 +12,7 @@ module KineticRuby
     def initialize(log_level=LOG_LEVEL_INFO, stream=$stdout)
       set_level log_level
       @stream = stream
+      @prefix = ''
     end
 
     def level=(log_level)
@@ -20,6 +21,14 @@ module KineticRuby
 
     def level
       @level.dup
+    end
+
+    def prefix=(msg)
+      @prefix = msg if msg
+    end
+
+    def prefix
+      @prefix.dup if @prefix
     end
 
     def log_info(msg='', banner=nil)
@@ -38,6 +47,14 @@ module KineticRuby
     end
     alias logv log_verbose
 
+    def log_exception(exception, desc=nil, level=LOG_LEVEL_ERROR)
+      log_err(desc) if (desc && !desc.empty?)
+      log_err "Exception #{exception.class} '#{exception.message}' occured at:"
+      exception.backtrace.each do |l|
+        log_err "  #{l}"
+      end
+    end
+
   private
 
     def set_level(log_level)
@@ -48,10 +65,9 @@ module KineticRuby
       @level = log_level
     end
 
-    LOG_BANNER = "\n----------------------------------------"
-
     def log_message(msg, banner)
-      msg += LOG_BANNER if (banner && msg && !msg.empty?)
+      msg = @prefix + msg if (@prefix && !@prefix.empty?)
+      msg += "\n" + @prefix + ('-'*40) if (banner && msg && !msg.empty?)
       @stream.puts msg
       @stream.flush
     end

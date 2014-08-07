@@ -1,11 +1,144 @@
-require 'socket'
-
 $kinetic_server = nil
+require_relative 'kinetic_constants'
 
 module KineticRuby
 
-  DEFAULT_KINETIC_PORT = 8123
-  TEST_KINETIC_PORT = 8999
+  class Client
+    def initialize(socket, addr_info, logger)
+      @socket = socket
+      @addr = addr_info
+      @logger = logger
+    end
+
+    # Shutdown a client socket
+    def close
+      return unless @socket
+      @logger.log "Client socket #{@socket.inspect} disconnected!"
+      @socket.close
+      @socket = nil
+      @logger.logv "Client #{@socket.inspect} connection shutdown successfully"
+    end
+
+    # Return formatted address '<address>:<port>' for the socket
+    def self.address(socket)
+      return nil unless socket
+      raise "Socket appears to be disconnected!" if !socket.remote_address
+      "#{socket.remote_address.ip_address}:#{socket.remote_address.ip_port}"
+    end
+
+    # Return formatted address '<address>:<port>' of the client
+    def address
+      Client.address(@socket)
+    end
+
+    # Wait to receive data from the client
+    # @param max_len  Maximum number of bytes to receive
+    # @returns        Received data (length <= max_len) or nil upon failure
+    def receive(max_len=nil)
+      max_len ||= 1024
+
+      begin
+        data = @socket.recv(max_len)
+      rescue IO::WaitReadable
+        @logger.logv 'Retrying receive...'
+        IO.select([@socket])
+        retry
+      rescue Exception => e
+        if e.class != 'IOError' && e.message != 'closed stream'
+          @logger.log_exception(e, 'EXCEPTION during receive!')
+        end
+      end
+
+      if (data.nil? || data.empty?)
+        @logger.log "Client #{@socket.inspect} disconnected!"
+        data = ''
+      else
+        @logger.log "Received #{data.length} bytes"
+      end
+
+      return data
+    end
+    alias recv receive # provide 'standard' socket method as well
+
+    # Send data to the client
+    def send(data)
+      @socket.write(data)
+    end
+    alias write send # provide 'standard' socket method as well
+
+  end
+
+  class ClientProvider
+    def initialize(host, port, logger)
+      @host = host
+      @port = port
+      @logger = logger
+      @server = nil
+    end
+
+    # @brief    Listen for connection
+    # @return   Returns a Client upon connection, nil upon failure
+    def accept
+      client = nil
+      @server ||= TCPServer.new(@host, @port)
+      
+      begin
+        client = Client.new(@server.accept)
+      rescue Exception => e
+        @logger.log_exception(e, 'EXCEPTION during accept!') 
+      end
+
+      @logger.log 'Client dropped off!' if client.nil?
+      
+      return client
+    end
+
+    # @brief    Shutdown the socket server
+    def shutdown
+      return if @server.nil?
+      @server.close
+      @server = nil
+    end
+
+    # @brief        Starts a TCP socket server and yields block for each client (sequential)
+    # @param host   Host name or IPv4/6 address
+    # @param port   Port to listen on
+    # @param logger Logger to output to
+    def self.each_client(host, port, logger)
+      raise "No block supplied!" unless block_given?
+      logger.log "Listening for clients..."
+
+      # Service clients, one at a time (for now at least)
+      begin
+        Socket.tcp_server_loop(host, port) do |socket, addr|
+          
+          logger.log "New client connected on socket #{socket.inspect}"
+          
+          client = Client.new(socket, addr, logger)
+          raise "Failed to connect to client!" unless client
+          logger.log "Connected to #{client.address}"
+
+          begin
+            # Execute the supplied block with the connected client
+            yield(client, logger)
+            logger.log "Done servicing client #{client.address}"
+          ensure
+            logger.log "Closing client socket..."
+            # Make sure the client gets closed, since tcp_server_loop does NOT!
+            client.close
+            logger.log "Client socket shutdown!"
+          end
+          logger.log "Done with client #{client.address}"
+        end
+
+      rescue Exception => e
+        logger.log_exception(e, 'EXCEPTION during listen!')
+      end 
+
+      logger.log "Done listening for clients!"
+    end
+
+  end
 
   class Server
 
@@ -14,17 +147,11 @@ module KineticRuby
     def initialize(port = DEFAULT_KINETIC_PORT, log_level=Logger::LOG_LEVEL_INFO)
       @host = 'localhost'
       @port ||= DEFAULT_KINETIC_PORT
-      raise "Invalid Kinetic test server port specified (port: #{port})" if !@port || @port < 0
+      raise "Invalid server port specified: #{port}" if !@port || @port < 0
       @logger = Logger.new(log_level)
-      @proto = Proto.new(@logger)
-      @server = nil
+      @logger.prefix = 'KineticSim: '
       @worker = nil
-      @clients = []
-      @logger.log "Kinetic Ruby test device server started!"
-    end
-
-    def connected
-      !@server.nil?
+      @logger.log 'Kinetic device test server started!'
     end
 
     def report_buffer(buf)
@@ -46,103 +173,105 @@ module KineticRuby
     end
 
     def start
-      return unless @server.nil?
-
-      @server = TCPServer.new(@host, @port)
+      return unless @worker.nil?
 
       # Setup handler for signaled shutdown (via ctrl+c)
       trap("INT") do
-        @logger.log "Kinetic Test Server: INT triggered Kintic Test Server shutdown"
+        @logger.log "INT triggered shutdown"
         shutdown
       end
 
-      # Create worker thread for test server to run in so we can continue
+      # Create background thread for processing client requests
       @worker = Thread.new do
-        @logger.log "Kinetic Test Server: Listening for Kinetic clients..."
-        loop do
-          client = nil
-          begin
-            client, client_info = @server.accept
-          rescue Exception => e
-            @logger.log "Kinetic Test Server: EXCEPTION during accept!\n" +
-              "  #{e.inspect}\n" +
-              "  #{e.message}\n  #{e.backtrace.join("  \n")}"
-            next if client.nil?
-          end
+        
+        # Service client connections (sequentially)
+        ClientProvider.each_client(@host, @port, @logger) do |client|
 
-          next if client.nil?
-
-          @logger.log "Kinetic Test Server: Connected to #{client.inspect}"
           request = ''
-          data = nil
           pdu = nil
-          disconnect = false
+          connected = true
+          raw_proto = nil
 
-          while !disconnect
-            begin
-              data = client.recv(1024)
-            rescue IO::WaitReadable
-              @logger.log("IO:WaitReadable");
-              IO.select([client])
-              retry
-            rescue Exception => e
-              @logger.logv "Kinetic Test Server: EXCEPTION during receive!\n" +
-                "  #{e.inspect}\n" +
-                "  #{e.message}\n  #{e.backtrace.join("  \n")}"
-              disconnect = true
-              next
+          # Process requests while client available
+          while connected && (data = client.receive)
+            if data.nil? || data.empty?
+              connected = false
+              break
             end
 
-            if (data.nil? || data.empty?)
-              @logger.log "Kinetic Test Server: Client #{client.inspect} disconnected!"
-              disconnect = true
-              next
-            end
+            # Append received data to request for processing
+            request += data
 
             # Incrementally parse PDU until complete
-            if request[0] == KineticRuby::Proto::VERSION_PREFIX && request.length >= 9
-              pdu ||= PDU.new(@Logger)
-              pdu.update(request)
+            if PDU.valid_header? request
+              @logger.log 'Receiving a PDU...'
+              raw_pdu = request.bytes.map{|b| sprintf("%02X", b)}.join('')
+              @logger.log "  request[#{request.length}]: #{raw_pdu}"
+              pdu ||= PDU.new(@logger)
+              if pdu.parse(request)
+                @logger.log "Received PDU successfully!"
+              else
+                @logger.log "Waiting on remainder of PDU..."
+              end
             end
 
+            # Handle raw protobuf.. for tests
+            if raw_proto || request.match(/^\n/)
+                @logger.log "Appears to be a standalone protobuf incoming..."
+                pdu = nil
+                raw_proto ||= []
+                raw_proto += request.bytes
+                @logger.log "  protobuf: (#{raw_proto.length} bytes)"
+
             # Otherwise, handle custom test requests
-            if pdu.nil?
+            elsif pdu.nil?
+              @logger.logv "Checking for custom request: '#{request}'"
               request_match = request.match(/^read\((\d+)\)/)
               if request_match
                 len = request_match[1].to_i
                 response = 'G'*len
-                @logger.log "Kinetic Test Server: Responding to 'read(#{len})' w/ '#{response}'"
-                client.write response
+                @logger.log "Responding to 'read(#{len})' w/ '#{response}'"
+                client.send response
                 request = ''
+                pdu = nil
               elsif request =~ /^readProto()/
-                response = @proto.test_encode
-                @logger.log "Kinetic Test Server: Responding to 'read(#{len})' w/ dummy @protobuf (#{response.length} bytes)"
-                client.write response
+                response = Proto.new(@logger).test_encode
+                @logger.log "Responding to 'read(#{len})' w/ dummy protobuf (#{response.length} bytes)"
+                client.send response
                 request = ''
+                pdu = nil
+              elsif request.match(/^read/) && data.length < 7
+                @logger.log "no command match for request: '#{request}' (...yet)";
+              else
+                @logger.log "Unknown request! Aborting..."
+                request = ''
+                pdu = nil
+                connected = false
               end
             end
 
-            @logger.log "Kinetic Test Server: Client #{client.inspect} disconnected!"
-            client.close
-            @logger.log "Kinetic Test Server: Client connection shutdown successfully"
-          end
-        end
-      end
+          end #request service loop pass
+
+          @logger.log "Disconnecting from client..."
+
+        end #client connection
+
+        @logger.log "Client listener shutting down..."
+      end #worker thread
+
+      @logger.log "Listener shutdown successfully!"
+
     end
 
     def shutdown
-      return if @server.nil?
-      @logger.log "Kinetic Test Server: shutting down..."
+      return if @worker.nil?
+      @logger.log 'shutting down...'
       if @worker
         @worker.exit
-        @worker.join(2)
+        @worker.join 2.0
         @worker = nil
       end
-      if @server
-        @server.close
-        @server = nil
-      end
-      @logger.log "Kinetic Test Server: shutdown complete"
+      @logger.log 'shutdown complete'
     end
 
   end

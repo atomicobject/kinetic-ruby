@@ -21,8 +21,11 @@ namespace :kinetic do
 
     desc "Shutdown Kinetic Test Server"
     task :shutdown do
-      $kinetic_server.shutdown unless $kinetic_server.nil?
-      $kinetic_server = nil
+      if $kinetic_server
+        $kinetic_server.shutdown
+        sleep 5.0
+        $kinetic_server = nil
+      end
     end
 
   end
