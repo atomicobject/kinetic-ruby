@@ -1,6 +1,8 @@
-require_relative 'kinetic_logger'
-require_relative 'kinetic_proto'
-require_relative 'kinetic_server'
+$LOAD_PATH << File.expand_path(File.dirname("./"))
+
+require 'kinetic_logger'
+require 'kinetic_proto'
+require 'kinetic_server'
 
 module KineticRuby
 

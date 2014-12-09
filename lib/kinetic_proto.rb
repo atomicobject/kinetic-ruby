@@ -1,7 +1,7 @@
 require 'yaml'
 require 'fileutils'
-require_relative 'kinetic_logger'
-require_relative 'kinetic_server'
+require 'kinetic_logger'
+require 'kinetic_server'
 
 module KineticRuby
 

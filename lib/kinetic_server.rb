@@ -1,4 +1,4 @@
-require_relative 'kinetic-ruby'
+require 'kinetic-ruby'
 
 $kinetic_server = nil
 
