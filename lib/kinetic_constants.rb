@@ -1,0 +1,4 @@
+module KineticRuby
+  DEFAULT_KINETIC_PORT = 8123
+  TEST_KINETIC_PORT = 8999
+end

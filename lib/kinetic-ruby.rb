@@ -3,18 +3,30 @@ $LOAD_PATH << File.expand_path(File.dirname("./"))
 require 'kinetic_logger'
 require 'kinetic_proto'
 require 'kinetic_server'
+require 'kinetic_constants'
+
+# Preload library files
+require 'fileutils'
+require 'socket'
+FileUtils.cd(File.dirname(__FILE__)) do
+  Dir['./**/*.rb'].each do |f|
+    mod = f.sub(/.rb/, '')
+    require mod
+  end
+end
 
 module KineticRuby
 
-  VERSION = '0.3.8'
-  DEFAULT_KINETIC_PORT = 8123
-  TEST_KINETIC_PORT = 8999
+  # Rake extensions for kinetic-ruby
+  module Rake
+    # Call from Rakefile to load kinetic-ruby Rake tasks (after requiring this file)
+    def self.load_tasks
+      Dir["#{File.dirname(__FILE__)}/../tasks/**/*.rake"].each do |tasks|
+        load tasks
+      end
+    end
 
-  kp_tag = ''
-  FileUtils.cd "./vendor/kinetic-protocol" do
-    kp_tag = 'v' + `git describe --tags`.strip
-    kp_tag = "<Unknown Kinetic Protocol version!>" if kp_tag !~ /^v\d+\.\d+\.\d+/
+    # Autoload rake tasks if Rake already loaded
+    load_tasks if defined?(Rake)
   end
-  KINETIC_PROTOCOL_VERSION = kp_tag
-
 end
